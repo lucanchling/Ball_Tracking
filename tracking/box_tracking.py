@@ -7,7 +7,7 @@ import time
 import cv2
 
 if __name__ == "__main__":       
-    trackerName = "mosse"
+    trackerName = "csrt"
 
     # extract the OpenCV version info
     (major, minor) = cv2.__version__.split(".")[:2]
@@ -36,7 +36,7 @@ if __name__ == "__main__":
     # to track
     initBB = None
 
-    videoName = "Video/extract3.mp4"
+    videoName = None
     # if a video path was not supplied, grab the reference to the web cam
     if videoName is None:
         print("[INFO] starting video stream...")
