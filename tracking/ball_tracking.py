@@ -43,7 +43,8 @@ def track_bbox(frame, tracker):
             text = "{}: {}".format(k, v)
             cv2.putText(frame, text, (10, H - ((i * 20) + 20)),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
-            
+        
+        tracker['currentBB'] = box
         tracker['is_tracking'] = success
 
 def get_bbox(x,y,radius,add_size=10):
@@ -68,6 +69,7 @@ def main(args):
             'name' : args["tracker"],
             'tracker' : get_tracker(args["tracker"]),
             'initBB' : None,
+            'currentBB' : None,
             'fps' : None,
             'is_tracking' : False
         }
@@ -118,6 +120,17 @@ def main(args):
                 cv2.circle(frame, (int(x), int(y)),
                            int(radius), (0, 255, 255), 2)
                 cv2.circle(frame, center, 5, (0, 0, 255), -1)
+
+            if args["cv2_tracking"]:
+                if not tracking['is_tracking']:
+                    start_new_tracking(tracking, frame, x, y, radius)
+                else:
+                    centerBB = (tracking['currentBB'][0] + tracking['currentBB'][2]//2, 
+                                tracking['currentBB'][1] + tracking['currentBB'][3]//2)
+                    dist_centers = np.linalg.norm(np.array(center) - np.array(centerBB))
+                    print(dist_centers)
+                    if dist_centers > 50:
+                        start_new_tracking(tracking, frame, x, y, radius)
 
         if args["cv2_tracking"]:
             track_bbox(frame, tracking)
