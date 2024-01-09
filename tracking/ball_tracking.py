@@ -8,12 +8,69 @@ import cv2
 import imutils
 import time
 
-from box_tracking import get_tracker, track_bbox
+from box_tracking import get_tracker
+
+def track_bbox(frame, tracker):
+    """Track the bounding box in the given frame"""
+    (H, W) = frame.shape[:2]
+        # check to see if we are currently tracking an object
+    if tracker['initBB'] is not None:
+            # grab the new bounding box coordinates of the object
+        (success, box) = tracker["tracker"].update(frame)
+            # check to see if the tracking was a success
+        if success:
+            (x, y, w, h) = [int(v) for v in box]
+            cv2.rectangle(frame, (x, y), (x + w, y + h),
+                    (0, 255, 0), 2)
+        
+        info = [
+                ("Tracker", tracker["name"]),
+                ("Success", "Yes" if success else "No")
+            ]
+        
+        if tracker['fps'] is not None:
+            # update the FPS counter
+            tracker['fps'].update()
+            tracker['fps'].stop()
+            try:
+                info.append(("FPS", "{:.2f}".format(tracker['fps'].fps())))
+            except ZeroDivisionError:
+                pass
+            # initialize the set of information we'll be displaying on
+            # the frame
+            # loop over the info tuples and draw them on our frame
+        for (i, (k, v)) in enumerate(info):
+            text = "{}: {}".format(k, v)
+            cv2.putText(frame, text, (10, H - ((i * 20) + 20)),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
+            
+        tracker['is_tracking'] = success
+
+def get_bbox(x,y,radius,add_size=10):
+    """Get the bounding box of the ball according to the center and radius"""
+    x_min = int(x-radius - add_size) if int(x-radius - add_size) > 0 else 0
+    y_min = int(y-radius - add_size) if int(y-radius - add_size) > 0 else 0
+    side = int(radius*2 + 2*add_size)
+    initBB = (x_min, y_min, side, side)
+    # print(initBB)
+    return initBB
+
+def start_new_tracking(tracker, frame, x, y, radius):
+    tracker["tracker"] = get_tracker(tracker["name"])
+    initBB = get_bbox(x,y,radius,15)
+    tracker["initBB"] = initBB
+    tracker["tracker"].init(frame, initBB)
+    tracker['fps'] = FPS().start()
 
 def main(args):
     if args["cv2_tracking"]:
-        trackerName = args["tracker"]
-        tracker = get_tracker(trackerName)
+        tracking = {
+            'name' : args["tracker"],
+            'tracker' : get_tracker(args["tracker"]),
+            'initBB' : None,
+            'fps' : None,
+            'is_tracking' : False
+        }
     videoName = args["video"]
     pts = deque(maxlen=64)
 
@@ -28,11 +85,6 @@ def main(args):
         vs = cv2.VideoCapture(videoName)
     
     time.sleep(1.0)
-
-    # initialize fps and bounding box
-    fps, initBB = None, None
-
-    is_tracking = False
 
     while True:
         frame = vs.read()
@@ -68,7 +120,7 @@ def main(args):
                 cv2.circle(frame, center, 5, (0, 0, 255), -1)
 
         if args["cv2_tracking"]:
-            is_tracking = track_bbox(frame, trackerName, tracker, initBB, fps)
+            track_bbox(frame, tracking)
         pts.appendleft(center)
 
         if args["line"]:
@@ -83,17 +135,7 @@ def main(args):
         key = cv2.waitKey(1) & 0xFF
 
         if key == ord("s") and args["cv2_tracking"]:
-            tracker = get_tracker(trackerName)
-            add_size = 10
-            x_min = int(x-radius - add_size) if int(x-radius - add_size) > 0 else 0
-            y_min = int(y-radius - add_size) if int(y-radius - add_size) > 0 else 0
-            side = int(radius*2 + add_size)
-            initBB = (x_min, y_min, side, side)
-            print(initBB)
-            # start OpenCV object tracker using the supplied bounding box
-            # coordinates, then start the FPS throughput estimator as well
-            tracker.init(frame, initBB)
-            fps = FPS().start()
+            start_new_tracking(tracking, frame, x, y, radius)
 
         if key == ord("q"):
             break
