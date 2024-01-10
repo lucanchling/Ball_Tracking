@@ -63,6 +63,37 @@ def start_new_tracking(tracker, frame, x, y, radius):
     tracker["tracker"].init(frame, initBB)
     tracker['fps'] = FPS().start()
 
+def get_ball_position(frame, lower, upper):
+    is_detected = False
+    center = None
+    radius = None
+
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    mask = cv2.inRange(hsv, lower, upper)
+    mask = cv2.erode(mask, None, iterations=2)
+    mask = cv2.dilate(mask, None, iterations=2)
+
+    cnts = cv2.findContours(mask.copy(),
+                            cv2.RETR_EXTERNAL,
+                            cv2.CHAIN_APPROX_SIMPLE)
+    cnts = imutils.grab_contours(cnts)
+
+    if len(cnts) > 0:   # if there is a ball
+        c = max(cnts, key=cv2.contourArea)
+        ((x,y), radius) = cv2.minEnclosingCircle(c)
+        M = cv2.moments(c)
+        center = (int(M["m10"]/M["m00"]),
+                    int(M["m01"]/M["m00"]))
+        
+        if radius > 10:
+            cv2.circle(frame, (int(x), int(y)),
+                        int(radius), (0, 255, 255), 2)
+            cv2.circle(frame, center, 5, (0, 0, 255), -1)
+
+            is_detected = True
+
+    return is_detected, center, radius
+
 def main(args):
     if args["cv2_tracking"]:
         tracking = {
@@ -95,42 +126,22 @@ def main(args):
         if frame is None:
             break
 
-        frame = imutils.resize(frame, width=500)
+        frame = imutils.resize(frame, width=400)
         # blurred = cv2.GaussianBlur(frame, (11, 11), 0)
-        hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
-        mask = cv2.inRange(hsv, yellowLower, yellowUpper)
-        mask = cv2.erode(mask, None, iterations=2)
-        mask = cv2.dilate(mask, None, iterations=2)
-
-        cnts = cv2.findContours(mask.copy(),
-                                cv2.RETR_EXTERNAL,
-                                cv2.CHAIN_APPROX_SIMPLE)
-        cnts = imutils.grab_contours(cnts)
-        center = None
-
-        if len(cnts) > 0:   # if there is a ball
-            c = max(cnts, key=cv2.contourArea)
-            ((x,y), radius) = cv2.minEnclosingCircle(c)
-            M = cv2.moments(c)
-            center = (int(M["m10"]/M["m00"]),
-                      int(M["m01"]/M["m00"]))
-            
-            if radius > 10:
-                cv2.circle(frame, (int(x), int(y)),
-                           int(radius), (0, 255, 255), 2)
-                cv2.circle(frame, center, 5, (0, 0, 255), -1)
-
-            if args["cv2_tracking"]:
-                if not tracking['is_tracking']:
+        ball_detected, center, radius = get_ball_position(frame, yellowLower, yellowUpper)
+        x, y = center if center is not None else (None, None)
+        
+        if ball_detected and args["cv2_tracking"]:
+            if not tracking['is_tracking']:
+                start_new_tracking(tracking, frame, x, y, radius)
+            else:
+                centerBB = (tracking['currentBB'][0] + tracking['currentBB'][2]//2, 
+                            tracking['currentBB'][1] + tracking['currentBB'][3]//2)
+                dist_centers = np.linalg.norm(np.array(center) - np.array(centerBB))
+                # print(dist_centers)
+                if dist_centers > 50:
                     start_new_tracking(tracking, frame, x, y, radius)
-                else:
-                    centerBB = (tracking['currentBB'][0] + tracking['currentBB'][2]//2, 
-                                tracking['currentBB'][1] + tracking['currentBB'][3]//2)
-                    dist_centers = np.linalg.norm(np.array(center) - np.array(centerBB))
-                    print(dist_centers)
-                    if dist_centers > 50:
-                        start_new_tracking(tracking, frame, x, y, radius)
 
         if args["cv2_tracking"]:
             track_bbox(frame, tracking)
