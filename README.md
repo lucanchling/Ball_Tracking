@@ -6,6 +6,7 @@ You'll need to install the different libraries by simply running the following l
 > pip install -r requirements.txt
 
 #### Different usefull links
+- [OpenCV Calibration](https://opencv24-python-tutorials.readthedocs.io/en/latest/py_tutorials/py_calib3d/py_calibration/py_calibration.html)
 - [OpenCV Object Tracking](https://pyimagesearch.com/2018/07/30/opencv-object-tracking/)
 - [OpenCV Ball Tracking](https://pyimagesearch.com/2015/09/14/ball-tracking-with-opencv/)
 
