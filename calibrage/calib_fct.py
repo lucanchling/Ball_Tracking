@@ -416,3 +416,116 @@ def calib_N_pictures (lframe,lz):
 # # M_int1, M_ext1, M1, phi1, gamma1, omega1 = calib_2_pictures(frame1,frame2)
 
 # M_int1, M_ext1, M1, phi1, gamma1, omega1 = calib_N_pictures([frame1, frame2, frame3],lz)
+
+
+
+
+def rotation_vec_to_matrix(r,t):
+    Mrot = np.zeros((3, 3))
+    Mrot[0,0] = np.cos(r[2])*np.cos(r[1])
+    Mrot[0,1] = -np.cos(r[2])*np.sin(r[1])
+    Mrot[0,2] = np.sin(r[2])
+    Mrot[1,0] = np.sin(r[0])*np.sin(r[2])*np.cos(r[1]) + np.cos(r[0])*np.sin(r[1])
+    Mrot[1,1] = -np.sin(r[0])*np.sin(r[2])*np.sin(r[1]) + np.cos(r[0])*np.cos(r[1])
+    Mrot[1,2] = -np.sin(r[0])*np.cos(r[2])
+    Mrot[2,0] = -np.cos(r[0])*np.sin(r[2])*np.cos(r[1]) + np.sin(r[0])*np.sin(r[1])
+    Mrot[2,1] = np.cos(r[0])*np.sin(r[2])*np.sin(r[1]) + np.sin(r[0])*np.cos(r[1])
+    Mrot[2,2] = np.cos(r[0])*np.cos(r[2])
+    M = np.hstack((Mrot,t))
+    M = np.vstack((M,np.array([0,0,0,1])))
+    return M
+
+
+def cv2Calibrate(coord_px,coord_mm,M_int, dist_old,h,w):
+    # Defining the dimensions of checkerboard
+    CHECKERBOARD = (11,8)
+    
+    # Creating vector to store vectors of 3D points for each checkerboard image
+    objpoints = [coord_mm]#[coord_mm[:88,:],coord_mm[88:,:]]
+    # objpoints = []
+    # Creating vector to store vectors of 2D points for each checkerboard image
+    imgpoints = [coord_px]#[coord_px[:88,:],coord_px[88:,:]] 
+    # imgpoints = []
+    
+    # # # Defining the world coordinates for 3D points
+    # objp = np.zeros((1, CHECKERBOARD[0] * CHECKERBOARD[1], 3), np.float32)
+    # objp[0,:,:2] = np.mgrid[0:CHECKERBOARD[0], 0:CHECKERBOARD[1]].T.reshape(-1, 2) * -20
+    
+    # # # Extracting path of individual image stored in a given directory
+    # images = glob.glob('./*.png')
+    # for fname in images:
+    #     img = cv2.imread(fname)
+    #     gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
+    #     # Find the chess board corners
+    #     # If desired number of corners are found in the image then ret = true
+    #     ret, corners = cv2.findChessboardCorners(gray, CHECKERBOARD, cv2.CALIB_CB_ADAPTIVE_THRESH + cv2.CALIB_CB_FAST_CHECK + cv2.CALIB_CB_NORMALIZE_IMAGE)
+    #     objpoints.append(np.squeeze(objp))
+    #     imgpoints.append(np.squeeze(corners))
+    
+        
+    # cv2.destroyAllWindows()
+    
+    # h,w = img.shape[:2]
+    
+    """
+    Performing camera calibration by 
+    passing the value of known 3D points (objpoints)
+    and corresponding pixel coordinates of the 
+    detected corners (imgpoints)
+    """
+    # objpoints_bis = np.concatenate(objpoints[0],objpoints[1])
+    # imgpoints_bis = np.concatenate(imgpoints[0],imgpoints[1])
+    
+    ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(objpoints, imgpoints, (h,w),M_int,None,None, flags=None )
+    
+    mean_error = 0
+    proj = []
+    proj_old = []
+    MTX = np.hstack((mtx,np.zeros((3,1))))
+    M_INT = np.hstack((M_int,np.zeros((3,1))))
+    for i in range(len(objpoints)):
+        imgpoints2, _ = cv2.projectPoints(objpoints[i], rvecs[i], tvecs[i], mtx, dist)
+        imgpoints2_old, _ = cv2.projectPoints(objpoints[i], rvecs[i], tvecs[i], M_int, dist_old)
+        # imgpoints2 = MTX*rotation_vec_to_matrix(rvecs[i],tvecs[i])*np.concatenate((objpoints[i],np.ones((objpoints[i].shape[0],1))),axis=1).T
+        # imgpoints2_old = M_INT*rotation_vec_to_matrix(rvecs[i],tvecs[i])*np.concatenate((objpoints[i],np.ones((objpoints[i].shape[0],1))),axis=1).T
+        proj.append(imgpoints2)
+        proj_old.append(imgpoints2_old)
+    # proj[0] = proj[0].T
+    # proj_old[0] = proj_old[0].T
+    # for i in range(len(proj[0])):
+    #     proj[0][i] = proj[0][i]/proj[0][i][2]
+    #     proj_old[0][i] = proj_old[0][i]/proj_old[0][i][2]
+    #     error = cv2.norm(imgpoints[i], imgpoints2, cv2.NORM_L2)/len(imgpoints2)
+    #     mean_error += error
+    # print( "total error: {}".format(mean_error/len(objpoints)) )
+
+    # plt.figure()
+    # plt.subplot(211)
+    # plt.imshow(images_save[0])
+    # plt.scatter(proj[0][:,:,0],proj[0][:,:,1])
+    # plt.subplot(212)
+    # plt.imshow(images_save[1])
+    # plt.scatter(proj[1][:,:,0],proj[1][:,:,1])
+    # plt.show()
+
+    return proj, proj_old, mtx, dist, rvecs, tvecs
+
+
+def calib_Mext(frame,Nx,Ny, objp, newMint, dist):
+    ret, corners_cam = cv2.findChessboardCorners(frame, (Nx,Ny),None)
+    while ret == False:
+        ret, corners_cam = cv2.findChessboardCorners(frame, (Nx,Ny),None)
+    # cv2.drawChessboardCorners(frame_cam2, (Nx,Ny), corners_cam2, ret)
+    plt.figure()
+    plt.imshow(frame)
+
+    proj_cam, proj_cam_old, Mint_cam, dist_cam, rvecs_cam, tvecs_cam = cv2Calibrate(corners_cam, objp, newMint, dist,frame.shape[1],frame.shape[0])
+    plt.figure()
+    plt.imshow(frame)
+    plt.scatter(proj_cam[0][:,:,0], proj_cam[0][:,:,1])
+    plt.scatter(proj_cam_old[0][:,:,0], proj_cam_old[0][:,:,1])
+    MSE = np.mean((proj_cam[0] - proj_cam_old[0])**2)
+    print("MSE :", MSE)
+
+    Mext_cam = rotation_vec_to_matrix(rvecs_cam[0], tvecs_cam[0])
+    return Mext_cam
