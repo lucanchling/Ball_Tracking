@@ -131,4 +131,4 @@ def calibrate_proper(frame):
 
     ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(objpoints, imgpoints, (h,w) ,M_int,None,None, flags=None )
     
-    return objpoints, imgpoints, mtx, dist, rvecs, tvecs
+    return mtx, dist, rvecs, tvecs
