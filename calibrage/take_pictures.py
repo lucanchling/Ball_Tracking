@@ -18,8 +18,8 @@ def take_pictures():
         cv2.imshow('img1',frame) #display the captured image
         cv2.imshow('img2',frame2)
         if cv2.waitKey(1) & 0xFF == ord('y'): #save on pressing 'y' 
-            cv2.imwrite('first_cam/c14.png',frame)
-            cv2.imwrite('second_cam/c14.png',frame2)
+            cv2.imwrite('/home/timothee/Documents/5ETI/Calibrage/TP_acquisition/first_cam/c_z.png',frame)
+            cv2.imwrite('/home/timothee/Documents/5ETI/Calibrage/TP_acquisition/second_cam/c_z.png',frame2)
             
             cv2.destroyAllWindows()
             break
