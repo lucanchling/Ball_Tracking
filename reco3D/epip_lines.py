@@ -49,6 +49,26 @@ def get_corners(img, chessboardsize):
 
     return objpoints, imgpoints
 
+def get_epilines(imgL, imgR, ptsL, ptsR, F , show=False):
+    colors = np.random.randint(0,255,(100,3))
+
+    nb_pts = ptsL.shape[0]
+
+    drawPoints(imgL, ptsL, colors[nb_pts:nb_pts*2])
+    drawPoints(imgR, ptsR, colors[0:nb_pts])
+
+    # compute the epilines
+    epilinesL = cv2.computeCorrespondEpilines(ptsR.reshape(-1,1,2), 2, F).reshape(-1,3)
+    drawLines(imgL, epilinesL, colors[0:3])
+
+    epilinesR = cv2.computeCorrespondEpilines(ptsL.reshape(-1,1,2), 1, F).reshape(-1,3)
+    drawLines(imgR, epilinesR, colors[3:6])
+
+    if show:
+        cv2.imshow("left", imgL)
+        cv2.imshow("right", imgR)
+        cv2.waitKey(0)
+
 def main(args):
     imname = "mire.png"
 
@@ -58,20 +78,18 @@ def main(args):
     mtx1, dist1, rvecs1, tvecs1 = calibrate_proper(imgL)
     mtx2, dist2, rvecs2, tvecs2 = calibrate_proper(imgR)
 
-    if args['undistort']:
-        # undistort the images
-        imgL = undistort(imgL, mtx1, dist1)
-        imgR = undistort(imgR, mtx2, dist2)
-        
-        color_imgL = cv2.cvtColor(imgL, cv2.COLOR_GRAY2BGR)
-        color_imgR = cv2.cvtColor(imgR, cv2.COLOR_GRAY2BGR)
+    imgL = undistort(imgL, mtx1, dist1)
+    imgR = undistort(imgR, mtx2, dist2)
+    
+    color_imgL = cv2.cvtColor(imgL, cv2.COLOR_GRAY2BGR)
+    color_imgR = cv2.cvtColor(imgR, cv2.COLOR_GRAY2BGR)
 
     # get the corners
     objpoints, imgpoints = get_corners(imgL, (11,8))
     _, imgpoints2 = get_corners(imgR, (11,8))
 
     # stereo calibration
-    mtx2 = mtx1
+    # mtx2 = mtx1
     ret, M1, d1, M2, d2, R, T, E, F = cv2.stereoCalibrate(objpoints, imgpoints, imgpoints2, 
                         mtx1, dist1, mtx2, dist2, 
                         imgL.shape[::-1], flags=cv2.CALIB_FIX_INTRINSIC)
@@ -80,23 +98,9 @@ def main(args):
     ptsL = np.asarray([imgpoints[0][0], imgpoints[0][8], imgpoints[0][36]])
     ptsR = np.asarray([imgpoints2[0][5], imgpoints2[0][15], imgpoints2[0][25]])
 
-    colors = np.random.randint(0,255,(100,3))
+    get_epilines(color_imgL, color_imgR, ptsL, ptsR, F)
 
-    drawPoints(color_imgL, ptsL, colors[3:6])
-    drawPoints(color_imgR, ptsR, colors[0:3])
-
-    # compute the epilines
-    epilinesL = cv2.computeCorrespondEpilines(ptsR.reshape(-1,1,2), 2, F).reshape(-1,3)
-    drawLines(color_imgL, epilinesL, colors[0:3])
-
-    epilinesR = cv2.computeCorrespondEpilines(ptsL.reshape(-1,1,2), 1, F).reshape(-1,3)
-    drawLines(color_imgR, epilinesR, colors[3:6])
-
-
-    # cv2.imshow("left", color_imgL)
-    # cv2.imshow("right", color_imgR)
-    # cv2.waitKey(0)
-
+    
     num = 3
     colorBall_imgL, BallimgL = load_images('Pictures/C1/im'+str(num)+'.png')
     colorBall_imgR, BallimgR = load_images('Pictures/C2/im'+str(num)+'.png')
@@ -116,18 +120,8 @@ def main(args):
     ptsL = np.asarray([center1])
     ptsR = np.asarray([center2])
 
-    drawPoints(colorBall_imgL, ptsL, colors[3:6])
-    drawPoints(colorBall_imgR, ptsR, colors[0:3])
+    get_epilines(colorBall_imgL, colorBall_imgR, ptsL, ptsR, F, True)
 
-    epilinesL = cv2.computeCorrespondEpilines(ptsR.reshape(-1,1,2), 2, F).reshape(-1,3)
-    drawLines(colorBall_imgL, epilinesL, colors[0:3])
-
-    epilinesR = cv2.computeCorrespondEpilines(ptsL.reshape(-1,1,2), 1, F).reshape(-1,3)
-    drawLines(colorBall_imgR, epilinesR, colors[3:6])
-
-    cv2.imshow("left", colorBall_imgL)
-    cv2.imshow("right", colorBall_imgR)
-    cv2.waitKey(0)
 
 if __name__ == '__main__':
     args = argparse.ArgumentParser()
