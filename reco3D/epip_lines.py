@@ -2,11 +2,43 @@ import cv2
 import numpy as np
 import argparse
 from scipy import linalg
-
-from ball_tracking_temp import get_ball_position
+import imutils
 
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
+
+def get_ball_position(frame, lower, upper, draw=True):
+    is_detected = False
+    center = None
+    radius = None
+
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    mask = cv2.inRange(hsv, lower, upper)
+    mask = cv2.erode(mask, None, iterations=2)
+    mask = cv2.dilate(mask, None, iterations=2)
+
+
+    cnts = cv2.findContours(mask.copy(),
+                            cv2.RETR_EXTERNAL,
+                            cv2.CHAIN_APPROX_SIMPLE)
+    cnts = imutils.grab_contours(cnts)
+
+    if len(cnts) > 0:   # if there is a ball
+        c = max(cnts, key=cv2.contourArea)
+        ((x,y), radius) = cv2.minEnclosingCircle(c)
+        M = cv2.moments(c)
+        center = (int(M["m10"]/M["m00"]),
+                    int(M["m01"]/M["m00"]))
+        
+        if radius > 10:
+            if draw:
+                cv2.circle(frame, (int(x), int(y)),
+                            int(radius), (0, 255, 255), 2)
+                cv2.circle(frame, center, 5, (0, 0, 255), -1)
+
+            is_detected = True
+
+    return is_detected, center, radius
 
 def drawPoints(img, pts, colors):
     for pt, color in zip(pts, colors):
