@@ -173,8 +173,15 @@ def main(args):
     # ptsL = np.asarray([center1])
     # ptsR = np.asarray([center2])
 
-    get_epilines(colorBall_imgL, colorBall_imgR, ptsL, ptsR, F)
+    epilineL, epilineR = get_epilines(colorBall_imgL, colorBall_imgR, ptsL, ptsR, F)
 
+    # get_3dpts_DLT(mtx, R, T, ptsL, ptsR, center1, center2)
+    return mtx, R, T, F, ptsL, ptsR, center1, center2, epilineL, epilineR
+
+
+
+
+def get_3dpts_DLT(mtx, R, T, ptsL, ptsR, center1, center2):
     P1 = np.hstack((np.eye(3,3), np.zeros((3,1))))
     P1 = mtx @ P1
     P2 = np.hstack((R, T))
