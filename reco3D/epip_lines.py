@@ -1,10 +1,12 @@
 import cv2
 import numpy as np
-import matplotlib.pyplot as plt
 import argparse
+from scipy import linalg
 
-from calib_temp import calibrate_proper
 from ball_tracking_temp import get_ball_position
+
+from mpl_toolkits.mplot3d import Axes3D
+import matplotlib.pyplot as plt
 
 def drawPoints(img, pts, colors):
     for pt, color in zip(pts, colors):
@@ -31,6 +33,13 @@ def undistort(img, mtx, dist):
     dst = cv2.undistort(img, mtx, dist, None, newcameramtx)
     dst = dst[y:y+h, x:x+w]
     return dst
+
+def load_undistorted_images(path, mtx, dist):
+    color_img, img = load_images(path)
+    img = undistort(img, mtx, dist)
+    color_img = undistort(color_img, mtx, dist)
+
+    return color_img, img
 
 def get_corners(img, chessboardsize):
     criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
@@ -69,58 +78,101 @@ def get_epilines(imgL, imgR, ptsL, ptsR, F , show=False):
         cv2.imshow("right", imgR)
         cv2.waitKey(0)
 
+    return epilinesL, epilinesR
+
+def DLT(P1, P2, point1, point2):
+ 
+    A = [point1[1]*P1[2,:] - P1[1,:],
+         P1[0,:] - point1[0]*P1[2,:],
+         point2[1]*P2[2,:] - P2[1,:],
+         P2[0,:] - point2[0]*P2[2,:]
+        ]
+    A = np.array(A).reshape((4,4))
+    #print('A: ')
+    #print(A)
+ 
+    B = A.transpose() @ A
+    U, s, Vh = linalg.svd(B, full_matrices = False)
+ 
+    # print(Vh[3,0:3]/Vh[3,3])
+    return np.array(Vh[3,0:3]/Vh[3,3])
+
 def main(args):
-    imname = "mire.png"
 
-    color_imgL, imgL = load_images('Pictures/C1/'+imname)
-    color_imgR, imgR = load_images('Pictures/C2/'+imname)
-
-    mtx1, dist1, rvecs1, tvecs1 = calibrate_proper(imgL)
-    mtx2, dist2, rvecs2, tvecs2 = calibrate_proper(imgR)
-
-    imgL = undistort(imgL, mtx1, dist1)
-    imgR = undistort(imgR, mtx2, dist2)
+    mtx = np.load('data/Mint.npy')
+    dist = np.load('data/dist.npy')
+    Mext_L = np.load('data/Mext_1.npy')
+    Mext_R = np.load('data/Mext_2.npy')
     
-    color_imgL = cv2.cvtColor(imgL, cv2.COLOR_GRAY2BGR)
-    color_imgR = cv2.cvtColor(imgR, cv2.COLOR_GRAY2BGR)
+    # print('Mext_L: ', Mext_L)
+    # print('Mext_R: ', Mext_R)
+
+    color_imgL, imgL = load_undistorted_images('Pictures/C1/grid.png', mtx, dist)
+    color_imgR, imgR = load_undistorted_images('Pictures/C2/grid.png', mtx, dist)
 
     # get the corners
     objpoints, imgpoints = get_corners(imgL, (11,8))
     _, imgpoints2 = get_corners(imgR, (11,8))
 
     # stereo calibration
-    # mtx2 = mtx1
     ret, M1, d1, M2, d2, R, T, E, F = cv2.stereoCalibrate(objpoints, imgpoints, imgpoints2, 
-                        mtx1, dist1, mtx2, dist2, 
+                        mtx, dist, mtx, dist, 
                         imgL.shape[::-1], flags=cv2.CALIB_FIX_INTRINSIC)
     
     # select some points
-    ptsL = np.asarray([imgpoints[0][0], imgpoints[0][8], imgpoints[0][36]])
-    ptsR = np.asarray([imgpoints2[0][5], imgpoints2[0][15], imgpoints2[0][25]])
+    ptsL = np.asarray([imgpoints[0][0], imgpoints[0][1], imgpoints[0][2], imgpoints[0][3], imgpoints[0][4], 
+                       imgpoints[0][11], imgpoints[0][12], imgpoints[0][13], imgpoints[0][14], imgpoints[0][15],
+                       imgpoints[0][22], imgpoints[0][23], imgpoints[0][24], imgpoints[0][25], imgpoints[0][26]])
+    ptsR = np.asarray([imgpoints2[0][0], imgpoints2[0][1], imgpoints2[0][2], imgpoints2[0][3], imgpoints2[0][4],
+                       imgpoints2[0][11], imgpoints2[0][12], imgpoints2[0][13], imgpoints2[0][14], imgpoints2[0][15],
+                       imgpoints2[0][22], imgpoints2[0][23], imgpoints2[0][24], imgpoints2[0][25], imgpoints2[0][26]])
 
     get_epilines(color_imgL, color_imgR, ptsL, ptsR, F)
 
-    
-    num = 3
-    colorBall_imgL, BallimgL = load_images('Pictures/C1/im'+str(num)+'.png')
-    colorBall_imgR, BallimgR = load_images('Pictures/C2/im'+str(num)+'.png')
+    colorBall_imgL, BallimgL = load_undistorted_images('Pictures/C1/with_measures.png', mtx, dist)
+    colorBall_imgR, BallimgR = load_undistorted_images('Pictures/C2/with_measures.png', mtx, dist)
 
-    BallimgL = undistort(BallimgL, mtx1, dist1)
-    BallimgR = undistort(BallimgR, mtx2, dist2)
-
-    colorBall_imgR = undistort(colorBall_imgR, mtx2, dist2)
-    colorBall_imgL = undistort(colorBall_imgL, mtx1, dist1)
-
-    yellowLower = (26, 100, 101)
+    yellowLower = (26, 120, 101)
     yellowUpper = (43, 255, 255)
 
     ret, center1, radius1 = get_ball_position(colorBall_imgL, yellowLower, yellowUpper)
     ret, center2, radius2 = get_ball_position(colorBall_imgR, yellowLower, yellowUpper)
 
-    ptsL = np.asarray([center1])
-    ptsR = np.asarray([center2])
+    # ptsL = np.asarray([center1])
+    # ptsR = np.asarray([center2])
 
-    get_epilines(colorBall_imgL, colorBall_imgR, ptsL, ptsR, F, True)
+    get_epilines(colorBall_imgL, colorBall_imgR, ptsL, ptsR, F)
+
+    P1 = np.hstack((np.eye(3,3), np.zeros((3,1))))
+    P1 = mtx @ P1
+    P2 = np.hstack((R, T))
+    P2 = mtx @ P2
+
+    pts3d = []
+
+    for i in range(0, len(ptsL)):
+        pts3d.append(DLT(P1, P2, ptsL[i], ptsR[i]))
+
+    pts3d = np.asarray(pts3d)
+    origin = np.asarray(pts3d[0])
+    pts3d = pts3d - origin
+
+    point1 = np.asarray([center1[0], center1[1], 1])
+    point2 = np.asarray([center2[0], center2[1], 1])
+
+    ball = np.asarray(DLT(P1, P2, point1, point2))
+    ball = ball - origin
+    print('origin: ', origin)
+    print('ball position: ', ball)
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    ax.scatter(pts3d[:,0], pts3d[:,1], pts3d[:,2], c='r', marker='o')
+    ax.scatter(ball[0], ball[1], ball[2], c='b', marker='o')
+    ax.set_xlabel('X Label')
+    ax.set_ylabel('Y Label')
+    ax.set_zlabel('Z Label')
+    plt.show()
 
 
 if __name__ == '__main__':
