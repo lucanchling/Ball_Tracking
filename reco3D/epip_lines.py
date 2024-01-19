@@ -1,7 +1,6 @@
 import cv2
 import numpy as np
 import argparse
-from scipy import linalg
 import imutils
 
 from mpl_toolkits.mplot3d import Axes3D
@@ -111,24 +110,7 @@ def get_epilines(imgL, imgR, ptsL, ptsR, F , show=False):
         cv2.waitKey(0)
 
     return epilinesL, epilinesR
-
-def DLT(P1, P2, point1, point2):
- 
-    A = [point1[1]*P1[2,:] - P1[1,:],
-         P1[0,:] - point1[0]*P1[2,:],
-         point2[1]*P2[2,:] - P2[1,:],
-         P2[0,:] - point2[0]*P2[2,:]
-        ]
-    A = np.array(A).reshape((4,4))
-    #print('A: ')
-    #print(A)
- 
-    B = A.transpose() @ A
-    U, s, Vh = linalg.svd(B, full_matrices = False)
- 
-    # print(Vh[3,0:3]/Vh[3,3])
-    return np.array(Vh[3,0:3]/Vh[3,3])
-
+    
 def main(args):
 
     mtx = np.load('data/Mint.npy')
@@ -175,43 +157,7 @@ def main(args):
 
     epilineL, epilineR = get_epilines(colorBall_imgL, colorBall_imgR, ptsL, ptsR, F)
 
-    # get_3dpts_DLT(mtx, R, T, ptsL, ptsR, center1, center2)
-    return mtx, R, T, F, ptsL, ptsR, center1, center2, epilineL, epilineR
-
-
-
-
-def get_3dpts_DLT(mtx, R, T, ptsL, ptsR, center1, center2):
-    P1 = np.hstack((np.eye(3,3), np.zeros((3,1))))
-    P1 = mtx @ P1
-    P2 = np.hstack((R, T))
-    P2 = mtx @ P2
-
-    pts3d = []
-
-    for i in range(0, len(ptsL)):
-        pts3d.append(DLT(P1, P2, ptsL[i], ptsR[i]))
-
-    pts3d = np.asarray(pts3d)
-    origin = np.asarray(pts3d[0])
-    pts3d = pts3d - origin
-
-    point1 = np.asarray([center1[0], center1[1], 1])
-    point2 = np.asarray([center2[0], center2[1], 1])
-
-    ball = np.asarray(DLT(P1, P2, point1, point2))
-    ball = ball - origin
-    print('origin: ', origin)
-    print('ball position: ', ball)
-
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
-    ax.scatter(pts3d[:,0], pts3d[:,1], pts3d[:,2], c='r', marker='o')
-    ax.scatter(ball[0], ball[1], ball[2], c='b', marker='o')
-    ax.set_xlabel('X Label')
-    ax.set_ylabel('Y Label')
-    ax.set_zlabel('Z Label')
-    plt.show()
+    return mtx, Mext_L, Mext_R, R, T, F, ptsL, ptsR, center1, center2, epilineL, epilineR
 
 
 if __name__ == '__main__':
