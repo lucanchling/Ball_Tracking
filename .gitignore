@@ -3,3 +3,13 @@ __pycache__
 Video
 Pictures
 data
+
+unity_ball_tracking/Library
+unity_ball_tracking/Logs
+unity_ball_tracking/Temp
+unity_ball_tracking/UserSettings
+unity_ball_tracking/.vsconfig
+unity_ball_tracking/Assembly-CSharp.csproj
+unity_ball_tracking/unity_ball_tracking.sln
+unity_ball_tracking/UpgradeLog.htm
+unity_ball_tracking/.vs/
