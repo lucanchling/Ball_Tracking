@@ -8,7 +8,7 @@ import cv2
 import imutils
 import time
 
-from box_tracking import get_tracker
+# from tracking.box_tracking import get_tracker
 
 def track_bbox(frame, tracker):
     """Track the bounding box in the given frame"""
