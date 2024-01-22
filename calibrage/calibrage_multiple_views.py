@@ -21,7 +21,7 @@ def rotation_vec_to_matrix(r,t):
     return M
 
 
-def getMINT_MEXT1_MEXT2(N_img):
+def getMINT_MEXT1_MEXT2(N_img, args):
     id_cam_1 = 4
     id_cam_2 = 6
     Nx = 11
@@ -131,7 +131,7 @@ def getMINT_MEXT1_MEXT2(N_img):
 
     plt.figure()
     plt.imshow(frame_cam2)
-    plt.scatter(proj_cam2[0][1,:,0], proj_cam2[0][1,:,1])
+    plt.scatter(proj_cam2[0][:,:,0], proj_cam2[0][:,:,1])
     plt.title("Projection des points sur l'image de la caméra 2")
     ### création de la matrice extrinsèque de la caméra 2
     Mext_cam2 = rotation_vec_to_matrix(rvecs_cam2, tvecs_cam2)
@@ -155,10 +155,12 @@ def getMINT_MEXT1_MEXT2(N_img):
     if args['save']:
         print("Saving matrices...")
 
+    return newMint, dist, Mext_cam1, Mext_cam2
+
 
 if __name__ == "__main__":
     args = argparse.ArgumentParser()
     args.add_argument('--show',action='store_true')
     args.add_argument('--save',action='store_true')
     args = vars(args.parse_args())
-    getMINT_MEXT1_MEXT2(N_img=10)
+    Mint, dist, Mext1, Mext2 = getMINT_MEXT1_MEXT2(N_img=20, args=args)
