@@ -3,7 +3,8 @@ from utils.take_video import take_video
 from utils.take_pictures import take_pictures
 import  argparse
 import cv2
-from tracking.ball_tracking import main as ball_tracking
+from tracking.ball_tracking import get_ball_position
+from tracking import box_tracking
 
 
 ### Calibrage des caméras
@@ -12,6 +13,9 @@ if __name__ == "__main__":
     N_img = 15
     id_cam1 = 4
     id_cam2 = 6
+    yellowLower = (20, 95, 156)
+    yellowUpper = (90, 235, 255)
+
     args = argparse.ArgumentParser()
     args.add_argument('--show',action='store_true')
     args.add_argument('--save',action='store_true')
@@ -31,7 +35,15 @@ if __name__ == "__main__":
         cv2.imshow('frame2', frame2)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
+        ball_detected_1, center_1, radius_1 = get_ball_position(frame1, yellowLower, yellowUpper)
+        ball_detected_2, center_2, radius_2 = get_ball_position(frame2, yellowLower, yellowUpper)
+        print("ball_detected_1 : ", ball_detected_1)
+        print("ball_detected_2 : ", ball_detected_2)
+        print("center_1 : ", center_1)
+        print("center_2 : ", center_2)
+
         
+
 
 
 
