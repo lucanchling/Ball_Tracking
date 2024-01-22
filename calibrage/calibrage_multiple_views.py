@@ -155,7 +155,7 @@ def getMINT_MEXT1_MEXT2(N_img, args):
     if args['save']:
         print("Saving matrices...")
 
-    return newMint, dist, Mext_cam1, Mext_cam2
+    return newMint, dist, Mext_cam1, Mext_cam2, frame_cam1, frame_cam2
 
 
 if __name__ == "__main__":
@@ -163,4 +163,4 @@ if __name__ == "__main__":
     args.add_argument('--show',action='store_true')
     args.add_argument('--save',action='store_true')
     args = vars(args.parse_args())
-    Mint, dist, Mext1, Mext2 = getMINT_MEXT1_MEXT2(N_img=20, args=args)
+    Mint, dist, Mext1, Mext2, frame_1, frame_2 = getMINT_MEXT1_MEXT2(N_img=20, args=args)

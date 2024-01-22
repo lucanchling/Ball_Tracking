@@ -5,6 +5,8 @@ import  argparse
 import cv2
 from tracking.ball_tracking import get_ball_position
 from tracking import box_tracking
+from reco3D.epip_lines import get_corners
+import matplotlib.pyplot as plt
 
 
 ### Calibrage des caméras
@@ -22,9 +24,19 @@ if __name__ == "__main__":
     args.add_argument("-v_1", "--video_1", type=str, help="path to input video file", default="your_video_1.avi")
     args.add_argument("-v_2", "--video_2", type=str, help="path to input video file", default="your_video_2.avi")
     args = vars(args.parse_args())
-    Mint, dist, Mext1, Mext2 = getMINT_MEXT1_MEXT2(N_img, args=args)
+    Mint, dist, Mext1, Mext2, frame_1, frame_2 = getMINT_MEXT1_MEXT2(N_img, args=args)
     # take_pictures(id_cam1, id_cam2)
     cv2.destroyAllWindows()
+
+    frame_1 = cv2.cvtColor(frame_1, cv2.COLOR_BGR2GRAY)
+    frame_2 = cv2.cvtColor(frame_2, cv2.COLOR_BGR2GRAY)
+    objp, corners_cam1 = get_corners(frame_1, (11,8))
+    _, corners_cam2 = get_corners(frame_2, (11,8))
+    
+    # stereo calibration
+    ret, M1, d1, M2, d2, R, T, E, F = cv2.stereoCalibrate(objp, corners_cam1, corners_cam2, 
+                        Mint, dist, Mint, dist, 
+                        (633, 470), flags=cv2.CALIB_FIX_INTRINSIC)
 
     cap1 = cv2.VideoCapture(id_cam1)
     cap2 = cv2.VideoCapture(id_cam2)
@@ -41,8 +53,8 @@ if __name__ == "__main__":
         print("ball_detected_2 : ", ball_detected_2)
         print("center_1 : ", center_1)
         print("center_2 : ", center_2)
-
         
+
 
 
 
