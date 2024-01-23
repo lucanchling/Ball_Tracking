@@ -123,10 +123,13 @@ def main(args):
 
     color_imgL, imgL = load_undistorted_images('Pictures/C1/grid.png', mtx, dist)
     color_imgR, imgR = load_undistorted_images('Pictures/C2/grid.png', mtx, dist)
-
+    print('imgL.shape: ', imgL.shape[::-1])
     # get the corners
     objpoints, imgpoints = get_corners(imgL, (11,8))
     _, imgpoints2 = get_corners(imgR, (11,8))
+    print('imgpoints: ', imgpoints)
+    print('imgpoints2: ', imgpoints2)
+    print('objpoints: ', objpoints)
 
     # stereo calibration
     ret, M1, d1, M2, d2, R, T, E, F = cv2.stereoCalibrate(objpoints, imgpoints, imgpoints2, 

@@ -3,7 +3,7 @@ import cv2
 from scipy import linalg
 import matplotlib.pyplot as plt
 
-from epip_lines import main as epip_main
+# from epip_lines import main as epip_main
 
 
 def get_optimal_points(F, center1, center2):
@@ -91,11 +91,14 @@ def main():
 
     # x = np.array([center1[0], center1[1], 1])
     # x_prime = np.array([center2[0], center2[1], 1])
-
+    print('ptsL: ', ptsL.shape)
+    print('ptsR: ', ptsR.shape)
     x = np.array([ptsL[1][0], ptsL[1][1], 1])
     x_prime = np.array([ptsR[1][0], ptsR[1][1], 1])
 
     # optimal solution that minimizes the distance between the two lines
+    print("center1: ", center1)
+    print("center2: ", center2)
     centerL, centerR = get_optimal_points(F, center1, center2)
 
     center1 = np.asarray(center1)

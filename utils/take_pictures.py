@@ -2,9 +2,7 @@ import cv2
 from imutils.video import VideoStream
 from matplotlib import pyplot as plt
 
-id_camera = 4
-id_cam2 = 6
-def take_pictures():
+def take_pictures(id_camera, id_cam2, path):
     cap = cv2.VideoCapture(id_camera)
     cap2 = cv2.VideoCapture(id_cam2)
     # Check if the webcam is opened correctly
@@ -16,8 +14,8 @@ def take_pictures():
         cv2.imshow('img1',frame) #display the captured image
         cv2.imshow('img2',frame2)
         if cv2.waitKey(1) & 0xFF == ord('y'): #save on pressing 'y' 
-            cv2.imwrite('/home/timothee/Documents/5ETI/Calibrage/TP_acquisition/first_cam/ball_1.png',frame)
-            cv2.imwrite('/home/timothee/Documents/5ETI/Calibrage/TP_acquisition/second_cam/ball_1.png',frame2)
+            cv2.imwrite(path+"1.png",frame)
+            cv2.imwrite(path+"2.png",frame2)
             
             cv2.destroyAllWindows()
             break
@@ -25,4 +23,5 @@ def take_pictures():
     cap.release()
 
 if __name__ == "__main__":
-    take_pictures()
+    path = "home/timothee/Documents/5ETI/Calibrage/TP_acquisition/first_cam/test_"
+    take_pictures(id_camera = 4, id_cam2 = 6, path = path)
