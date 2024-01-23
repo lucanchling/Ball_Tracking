@@ -14,13 +14,13 @@ from reco3D.minimize_dist import get_optimal_points
 ### Calibrage des caméras
 if __name__ == "__main__":
 
-    N_img = 100
+    N_img = 50
     id_cam1 = 4
     id_cam2 = 6
     # yellowLower = (20, 95, 156)
     # yellowUpper = (90, 235, 255)
-    yellowLower = (0, 89, 146)
-    yellowUpper = (255, 255, 255)
+    yellowLower = (24, 180, 122)
+    yellowUpper = (42, 255, 255)
 
     args = argparse.ArgumentParser()
     args.add_argument('--show',action='store_true')
@@ -49,8 +49,6 @@ if __name__ == "__main__":
     while(True):
         _, frame1 = cap1.read()
         _, frame2 = cap2.read()
-        cv2.imshow('frame1', frame1)
-        cv2.imshow('frame2', frame2)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
         ball_detected_1, center_1, radius_1 = get_ball_position(frame1, yellowLower, yellowUpper)
@@ -63,8 +61,10 @@ if __name__ == "__main__":
 
             print("center1 : ", center_1)
             print("center2 : ", center_2)
-            cv2.circle(frame1, center_1, int(radius_1), (0, 255, 0), 2)
-            cv2.circle(frame2, center_2, int(radius_2), (0, 255, 0), 2)
+            # cv2.circle(frame1, center_1, int(radius_1), (0, 255, 0), 2)
+            # cv2.circle(frame2, center_2, int(radius_2), (0, 255, 0), 2)
+            
+
 
             t_vec_L, t_vec_R = Mext1[:,3], Mext2[:,3]
 
@@ -115,22 +115,24 @@ if __name__ == "__main__":
             X = (c1 + c2) / 2
 
             print('3D point: ', X)
-
-        # plot the lines
-        fig = plt.figure()
-        ax = fig.add_subplot(111, projection='3d')
-        ax.scatter(0, 0, 0, c='b', marker='o')
-        ax.scatter(C2[0], C2[1], C2[2], c='r', marker='o')
-        # ax.scatter(x_prime_cam[0], x_prime_cam[1], x_prime_cam[2], c='g', marker='o')
-        # ax.scatter(c1[0], c1[1], c1[2], c='y', marker='o')
-        # ax.scatter(c2[0], c2[1], c2[2], c='c', marker='o')
-        ax.quiver(0, 0, 0, l1[0], l1[1], l1[2], length=2000, normalize=True, color='b')
-        ax.quiver(C2[0], C2[1], C2[2], l2[0], l2[1], l2[2], length=2000, normalize=True, color='r')
-        ax.scatter(X[0], X[1], X[2], c='c', marker='o')
-        ax.set_xlabel('X Label')
-        ax.set_ylabel('Y Label')
-        ax.set_zlabel('Z Label')
-        # plt.show()
+            
+            # plot the lines
+            fig = plt.figure()
+            ax = fig.add_subplot(111, projection='3d')
+            ax.scatter(0, 0, 0, c='b', marker='o')
+            ax.scatter(C2[0], C2[1], C2[2], c='r', marker='o')
+            # ax.scatter(x_prime_cam[0], x_prime_cam[1], x_prime_cam[2], c='g', marker='o')
+            # ax.scatter(c1[0], c1[1], c1[2], c='y', marker='o')
+            # ax.scatter(c2[0], c2[1], c2[2], c='c', marker='o')
+            ax.quiver(0, 0, 0, l1[0], l1[1], l1[2], length=2000, normalize=True, color='b')
+            ax.quiver(C2[0], C2[1], C2[2], l2[0], l2[1], l2[2], length=2000, normalize=True, color='r')
+            ax.scatter(X[0], X[1], X[2], c='c', marker='o')
+            ax.set_xlabel('X Label')
+            ax.set_ylabel('Y Label')
+            ax.set_zlabel('Z Label')
+            # plt.show()
+        cv2.imshow('frame1', frame1)
+        cv2.imshow('frame2', frame2)
 
 
     cap1.release()
