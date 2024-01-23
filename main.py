@@ -16,9 +16,10 @@ import json
 ### Calibrage des caméras
 if __name__ == "__main__":
 
-    N_img = 10
+    N_img = 30
     id_cam1 = 4
     id_cam2 = 6
+    terrain = True
     # Serveur
     UDP_IP = "127.0.0.1"
     UDP_PORT = 5065
@@ -147,17 +148,51 @@ if __name__ == "__main__":
             # ax.set_ylabel('Y Label')
             # ax.set_zlabel('Z Label')
             # plt.show()
-            
-        # ret, corners = cv2.findChessboardCorners(frame1, (11,8),None)
-        # ret2, corners2 = cv2.findChessboardCorners(frame2, (11,8),None)
-        # cv2.drawChessboardCorners(frame1, (11,8), corners, ret)
-        # cv2.drawChessboardCorners(frame2, (11,8), corners2, ret2)
-        cv2.imshow('frame1', frame1)
-        cv2.imshow('frame2', frame2)
+            if terrain:
+                ret, corners = cv2.findChessboardCorners(frame1, (11,8),None)
+                ret2, corners2 = cv2.findChessboardCorners(frame2, (11,8),None)
+                # cv2.drawChessboardCorners(frame1, (11,8), corners, ret)
+                # cv2.drawChessboardCorners(frame2, (11,8), corners2, ret2)
+    
+                if ret and ret2:
+                    COINS = [corners[0], corners[10], corners[77], corners[87]]
+                    COINS2 = [corners2[0], corners2[10], corners2[77], corners2[87]]
+                    cv2.drawChessboardCorners(frame1, (2,2), np.array(COINS), ret)
+                    cv2.drawChessboardCorners(frame2, (2,2), np.array(COINS2), ret2)
+    
+                    ### get 3D coordinates of the corners
+                    COINS3D = []
+                    for i in range(len(COINS)):
+                        x = np.array([COINS[i][0][0], COINS[i][0][1], 1])
+                        x_prime = np.array([COINS2[i][0][0], COINS2[i][0][1], 1])
+                        x_cam = np.linalg.inv(Mint) @ x
+                        x_prime_cam = np.linalg.inv(Mint) @ x_prime
+                        x_prime_cam = np.squeeze(x_prime_cam)
+    
+                        x_prime_cam = R.transpose() @ (x_prime_cam.reshape(3,1) - T)
+                        x_prime_cam = x_prime_cam.reshape(3,)
+                        l1 = x_cam 
+                        l2 = x_prime_cam - C2 
+                        l1 = l1 / np.linalg.norm(l1)
+                        l2 = l2 / np.linalg.norm(l2)
+                        n = np.cross(l1, l2)
+                        n1 = np.cross(l1, n)
+                        n2 = np.cross(l2, n)
+                        c1 = C1 + (np.dot(C2- C1, n2))/np.dot(l1, n2) * l1
+                        c2 = C2 + (np.dot(C1- C2, n1))/np.dot(l2, n1) * l2
+                        Xi = (c1 + c2) / 2
+                        COINS3D.append(Xi)
+    
+                ### if X se trouve dans la box de corners COINS3D alors on print ("IN")
+                ### else on print ("OUT")
+                    if X[0] < COINS3D[0][0] and X[0] > COINS3D[1][0] and X[0] < COINS3D[2][0] and X[0] > COINS3D[3][0] and X[2] > COINS3D[0][2] and X[2] > COINS3D[2][2]:
+                        print("IN")
+                    else:
+                        print("OUT")
+        # cv2.imshow('frame1', frame1)
+        # cv2.imshow('frame2', frame2)
         av_speed = 0    
-        # print("X : ", X[0])
-        # print("Y : ", X[1])
-        # print("Z : ", X[2])
+
         message = json.dumps({"is_detected": cpp_is_ball_detected, 
                               "x": float(X[0]),
                               "y": float(X[1]),
