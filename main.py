@@ -9,7 +9,7 @@ from reco3D.epip_lines import get_corners
 import matplotlib.pyplot as plt
 import numpy as np
 from reco3D.minimize_dist import get_optimal_points
-
+import imutils
 
 ### Calibrage des caméras
 if __name__ == "__main__":
@@ -51,6 +51,11 @@ if __name__ == "__main__":
         _, frame2 = cap2.read()
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
+        
+        ### add undistort potentiellement
+
+        frame1 = imutils.resize(frame1, width=400)
+        frame2 = imutils.resize(frame2, width=400)
         ball_detected_1, center_1, radius_1 = get_ball_position(frame1, yellowLower, yellowUpper)
         ball_detected_2, center_2, radius_2 = get_ball_position(frame2, yellowLower, yellowUpper)
         
