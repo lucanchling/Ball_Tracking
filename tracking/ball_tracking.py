@@ -86,7 +86,7 @@ def get_ball_position(frame, lower, upper):
                     int(M["m01"]/M["m00"]))
         
         if radius > 10:
-            print("radius : ", radius)
+            # print("radius : ", radius)
             cv2.circle(frame, (int(x), int(y)),
                         int(radius), (0, 255, 255), 2)
             cv2.circle(frame, center, 5, (0, 0, 255), -1)

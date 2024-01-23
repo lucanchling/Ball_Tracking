@@ -80,11 +80,11 @@ def getMINT_MEXT1_MEXT2(N_img, args):
     ### Création de la matrice intrinsèque a priori
     M_int_a_priori = np.array([[f1, 0, i1],[0, f2, i2],[0, 0, 1]])
 
-    print("M_int_a_priori :", M_int_a_priori)
+    # print("M_int_a_priori :", M_int_a_priori)
     
     ### On obtient Mint qui est la matrice intrinsèque de la caméra 1 et de la caméra 2
     ret, Mint, dist, rvecs, tvecs = cv2.calibrateCamera(objpoints, imgpoints, gray.shape[::-1], M_int_a_priori, None, flags=cv2.CALIB_USE_INTRINSIC_GUESS+cv2.CALIB_FIX_ASPECT_RATIO+cv2.CALIB_FIX_PRINCIPAL_POINT) #cv2.CALIB_USE_INTRINSIC_GUESS+cv2.CALIB_FIX_FOCAL_LENGTH)
-    print("Mint :", Mint)
+    # print("Mint :", Mint)
 
 
     ### On prend en compte la distorsion
@@ -100,10 +100,10 @@ def getMINT_MEXT1_MEXT2(N_img, args):
         plt.figure()
         plt.imshow(dst)
         plt.title("Undistorted image")
-        print("newMint : ", newMint)
+        # print("newMint : ", newMint)
     ### On vérifie que le tz correspond bien à la distance entre la caméra 1 et la mire (en mm)
-    print("rvecs[0]",rvecs[0])
-    print("tvecs[0]",tvecs[0])
+    # print("rvecs[0]",rvecs[0])
+    # print("tvecs[0]",tvecs[0])
 
     ### On save une frame au même instant t sur les deux caméras de la grille 
     cap2 = cv2.VideoCapture(id_cam_2)
@@ -135,7 +135,7 @@ def getMINT_MEXT1_MEXT2(N_img, args):
     plt.title("Projection des points sur l'image de la caméra 2")
     ### création de la matrice extrinsèque de la caméra 2
     Mext_cam2 = rotation_vec_to_matrix(rvecs_cam2, tvecs_cam2)
-    print("Mext_cam2 : ", Mext_cam2)
+    # print("Mext_cam2 : ", Mext_cam2)
 
     ### On obtient les paramètres extrinsèques de la caméra 1 en utilisant MINT et les facteurs de distorsion
     success_cam1, rvecs_cam1, tvecs_cam1 = cv2.solvePnP(objp, corners_cam1, newMint, dist)
@@ -148,13 +148,13 @@ def getMINT_MEXT1_MEXT2(N_img, args):
     # plt.show()
     ### création de la matrice extrinsèque de la caméra 1
     Mext_cam1 = rotation_vec_to_matrix(rvecs_cam1, tvecs_cam1)
-    print("Mext_cam1 : ", Mext_cam1)
+    # print("Mext_cam1 : ", Mext_cam1)
     if args['show']:
         print("Showing figures...")
         plt.show()
     if args['save']:
         print("Saving matrices...")
-
+    
     return newMint, dist, Mext_cam1, Mext_cam2, frame_cam1, frame_cam2
 
 

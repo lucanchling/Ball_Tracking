@@ -10,13 +10,20 @@ import matplotlib.pyplot as plt
 import numpy as np
 from reco3D.minimize_dist import get_optimal_points
 import imutils
+import socket
+import json
 
 ### Calibrage des caméras
 if __name__ == "__main__":
 
-    N_img = 50
+    N_img = 10
     id_cam1 = 4
     id_cam2 = 6
+    # Serveur
+    UDP_IP = "127.0.0.1"
+    UDP_PORT = 5065
+    # UDP serveur
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     # yellowLower = (20, 95, 156)
     # yellowUpper = (90, 235, 255)
     yellowLower = (24, 180, 122)
@@ -29,6 +36,7 @@ if __name__ == "__main__":
     args.add_argument("-v_2", "--video_2", type=str, help="path to input video file", default="your_video_2.avi")
     args = vars(args.parse_args())
     Mint, dist, Mext1, Mext2, frame_1, frame_2 = getMINT_MEXT1_MEXT2(N_img, args=args)
+    print("Calibration done !")
     # take_pictures(id_cam1, id_cam2)
     cv2.destroyAllWindows()
 
@@ -46,6 +54,7 @@ if __name__ == "__main__":
 
     cap1 = cv2.VideoCapture(id_cam1)
     cap2 = cv2.VideoCapture(id_cam2)
+    print("Starting tracking...")
     while(True):
         _, frame1 = cap1.read()
         _, frame2 = cap2.read()
@@ -54,18 +63,20 @@ if __name__ == "__main__":
         
         ### add undistort potentiellement
 
-        frame1 = imutils.resize(frame1, width=400)
-        frame2 = imutils.resize(frame2, width=400)
+        # frame1 = imutils.resize(frame1, width=400)
+        # frame2 = imutils.resize(frame2, width=400)
         ball_detected_1, center_1, radius_1 = get_ball_position(frame1, yellowLower, yellowUpper)
         ball_detected_2, center_2, radius_2 = get_ball_position(frame2, yellowLower, yellowUpper)
         
-        print("ball_detected_1 : ", ball_detected_1)
-        print("ball_detected_2 : ", ball_detected_2)
+        # print("ball_detected_1 : ", ball_detected_1)
+        # print("ball_detected_2 : ", ball_detected_2)
+        cpp_is_ball_detected = 0
+        X = np.array([0,0,0])
         if ball_detected_1 and ball_detected_2:
-            
+            cpp_is_ball_detected = 1
 
-            print("center1 : ", center_1)
-            print("center2 : ", center_2)
+            # print("center1 : ", center_1)
+            # print("center2 : ", center_2)
             # cv2.circle(frame1, center_1, int(radius_1), (0, 255, 0), 2)
             # cv2.circle(frame2, center_2, int(radius_2), (0, 255, 0), 2)
             
@@ -119,26 +130,41 @@ if __name__ == "__main__":
 
             X = (c1 + c2) / 2
 
-            print('3D point: ', X)
+            # print('3D point: ', X)
             
             # plot the lines
-            fig = plt.figure()
-            ax = fig.add_subplot(111, projection='3d')
-            ax.scatter(0, 0, 0, c='b', marker='o')
-            ax.scatter(C2[0], C2[1], C2[2], c='r', marker='o')
-            # ax.scatter(x_prime_cam[0], x_prime_cam[1], x_prime_cam[2], c='g', marker='o')
-            # ax.scatter(c1[0], c1[1], c1[2], c='y', marker='o')
-            # ax.scatter(c2[0], c2[1], c2[2], c='c', marker='o')
-            ax.quiver(0, 0, 0, l1[0], l1[1], l1[2], length=2000, normalize=True, color='b')
-            ax.quiver(C2[0], C2[1], C2[2], l2[0], l2[1], l2[2], length=2000, normalize=True, color='r')
-            ax.scatter(X[0], X[1], X[2], c='c', marker='o')
-            ax.set_xlabel('X Label')
-            ax.set_ylabel('Y Label')
-            ax.set_zlabel('Z Label')
+            # fig = plt.figure()
+            # ax = fig.add_subplot(111, projection='3d')
+            # ax.scatter(0, 0, 0, c='b', marker='o')
+            # ax.scatter(C2[0], C2[1], C2[2], c='r', marker='o')
+            # # ax.scatter(x_prime_cam[0], x_prime_cam[1], x_prime_cam[2], c='g', marker='o')
+            # # ax.scatter(c1[0], c1[1], c1[2], c='y', marker='o')
+            # # ax.scatter(c2[0], c2[1], c2[2], c='c', marker='o')
+            # ax.quiver(0, 0, 0, l1[0], l1[1], l1[2], length=2000, normalize=True, color='b')
+            # ax.quiver(C2[0], C2[1], C2[2], l2[0], l2[1], l2[2], length=2000, normalize=True, color='r')
+            # ax.scatter(X[0], X[1], X[2], c='c', marker='o')
+            # ax.set_xlabel('X Label')
+            # ax.set_ylabel('Y Label')
+            # ax.set_zlabel('Z Label')
             # plt.show()
+            
+        # ret, corners = cv2.findChessboardCorners(frame1, (11,8),None)
+        # ret2, corners2 = cv2.findChessboardCorners(frame2, (11,8),None)
+        # cv2.drawChessboardCorners(frame1, (11,8), corners, ret)
+        # cv2.drawChessboardCorners(frame2, (11,8), corners2, ret2)
         cv2.imshow('frame1', frame1)
         cv2.imshow('frame2', frame2)
-
+        av_speed = 0    
+        # print("X : ", X[0])
+        # print("Y : ", X[1])
+        # print("Z : ", X[2])
+        message = json.dumps({"is_detected": cpp_is_ball_detected, 
+                              "x": float(X[0]),
+                              "y": float(X[1]),
+                              "z": float(X[2]),
+                              "speed": round(av_speed,2),
+                              })
+        sock.sendto(message.encode(), (UDP_IP, UDP_PORT))
 
     cap1.release()
     cap2.release()
