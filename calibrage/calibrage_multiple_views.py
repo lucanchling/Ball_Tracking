@@ -145,7 +145,7 @@ def getMINT_MEXT1_MEXT2(N_img, args):
     plt.imshow(frame_cam1)
     plt.scatter(proj_cam1[0][:,:,0], proj_cam1[0][:,:,1])
     plt.title("Projection des points sur l'image de la caméra 1")
-
+    # plt.show()
     ### création de la matrice extrinsèque de la caméra 1
     Mext_cam1 = rotation_vec_to_matrix(rvecs_cam1, tvecs_cam1)
     print("Mext_cam1 : ", Mext_cam1)

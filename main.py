@@ -14,11 +14,13 @@ from reco3D.minimize_dist import get_optimal_points
 ### Calibrage des caméras
 if __name__ == "__main__":
 
-    N_img = 15
+    N_img = 100
     id_cam1 = 4
     id_cam2 = 6
-    yellowLower = (20, 95, 156)
-    yellowUpper = (90, 235, 255)
+    # yellowLower = (20, 95, 156)
+    # yellowUpper = (90, 235, 255)
+    yellowLower = (0, 89, 146)
+    yellowUpper = (255, 255, 255)
 
     args = argparse.ArgumentParser()
     args.add_argument('--show',action='store_true')
@@ -53,62 +55,66 @@ if __name__ == "__main__":
             break
         ball_detected_1, center_1, radius_1 = get_ball_position(frame1, yellowLower, yellowUpper)
         ball_detected_2, center_2, radius_2 = get_ball_position(frame2, yellowLower, yellowUpper)
+        
         print("ball_detected_1 : ", ball_detected_1)
         print("ball_detected_2 : ", ball_detected_2)
-        print("center_1 : ", center_1)
-        print("center_2 : ", center_2)
-        center_1 = (200,120)
-        center_2 = (240,100)
-        print("center1 : ", center_1)
-        print("center2 : ", center_2)
+        if ball_detected_1 and ball_detected_2:
+            
 
-        t_vec_L, t_vec_R = Mext1[:,3], Mext2[:,3]
+            print("center1 : ", center_1)
+            print("center2 : ", center_2)
+            cv2.circle(frame1, center_1, int(radius_1), (0, 255, 0), 2)
+            cv2.circle(frame2, center_2, int(radius_2), (0, 255, 0), 2)
 
-        x = np.array([corners_cam1[1][0], corners_cam1[1][1], 1])
-        # x = np.array([corners_cam1[]])
+            t_vec_L, t_vec_R = Mext1[:,3], Mext2[:,3]
 
-        x_prime = np.array([corners_cam2[1][0], corners_cam2[1][1], 1])
-        centerL, centerR = get_optimal_points(F, center_1, center_2)
-        center1 = np.asarray(center_1)
-        center2 = np.asarray(center_2)
+            # x = np.array([corners_cam1[1][0], corners_cam1[1][1], 1])
+            x = np.array([center_1[0], center_1[1], 1])
+            # x = np.array([corners_cam1[]])
+            x_prime = np.array([center_2[0], center_2[1], 1])
 
-        # camera_center
-        C1 = np.array([0,0,0])
-        C2 = np.array([0,0,0])
-        # express C2 in C1 coordinate system
-        C2 = -R.transpose() @ T
+            # x_prime = np.array([corners_cam2[1][0], corners_cam2[1][1], 1])
+            # centerL, centerR = get_optimal_points(F, center_1, center_2)
+            # center1 = np.asarray(center_1)
+            # center2 = np.asarray(center_2)
 
-        C2 = C2.reshape(3,)
+            # camera_center
+            C1 = np.array([0,0,0])
+            C2 = np.array([0,0,0])
+            # express C2 in C1 coordinate system
+            C2 = -R.transpose() @ T
 
-
-        # project points to the camera plane
-        x_cam = np.linalg.inv(Mint) @ x # C1 plane
-        x_prime_cam = np.linalg.inv(Mint) @ x_prime # C2 plane
-        x_prime_cam = np.squeeze(x_prime_cam) 
-        # express C2 projected point in C1 plane
-        x_prime_cam = R.transpose() @ (x_prime_cam.reshape(3,1) - T)
-        x_prime_cam = x_prime_cam.reshape(3,)
-        # line from camera center towards the point
-        l1 = x_cam
-        l2 = x_prime_cam - C2
+            C2 = C2.reshape(3,)
 
 
-        # normalize the lines
-        l1 = l1 / np.linalg.norm(l1)
-        l2 = l2 / np.linalg.norm(l2)
+            # project points to the camera plane
+            x_cam = np.linalg.inv(Mint) @ x # C1 plane
+            x_prime_cam = np.linalg.inv(Mint) @ x_prime # C2 plane
+            x_prime_cam = np.squeeze(x_prime_cam) 
+            # express C2 projected point in C1 plane
+            x_prime_cam = R.transpose() @ (x_prime_cam.reshape(3,1) - T)
+            x_prime_cam = x_prime_cam.reshape(3,)
+            # line from camera center towards the point
+            l1 = x_cam
+            l2 = x_prime_cam - C2
 
-        # get the 3D point with the shortest distance to both lines
-        n = np.cross(l1, l2)
-        n1 = np.cross(l1, n)
-        n2 = np.cross(l2, n)
-        # n = n / np.linalg.norm(n)
-    
-        c1 = C1 + (np.dot(C2- C1, n2))/np.dot(l1, n2) * l1
-        c2 = C2 + (np.dot(C1- C2, n1))/np.dot(l2, n1) * l2
-    
-        X = (c1 + c2) / 2
-    
-        print('3D point: ', X)
+
+            # normalize the lines
+            l1 = l1 / np.linalg.norm(l1)
+            l2 = l2 / np.linalg.norm(l2)
+
+            # get the 3D point with the shortest distance to both lines
+            n = np.cross(l1, l2)
+            n1 = np.cross(l1, n)
+            n2 = np.cross(l2, n)
+            # n = n / np.linalg.norm(n)
+
+            c1 = C1 + (np.dot(C2- C1, n2))/np.dot(l1, n2) * l1
+            c2 = C2 + (np.dot(C1- C2, n1))/np.dot(l2, n1) * l2
+
+            X = (c1 + c2) / 2
+
+            print('3D point: ', X)
 
         # plot the lines
         fig = plt.figure()
@@ -124,7 +130,7 @@ if __name__ == "__main__":
         ax.set_xlabel('X Label')
         ax.set_ylabel('Y Label')
         ax.set_zlabel('Z Label')
-        plt.show()
+        # plt.show()
 
 
     cap1.release()
