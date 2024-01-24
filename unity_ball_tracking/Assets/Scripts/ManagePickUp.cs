@@ -43,8 +43,8 @@ public class ManagePickUp : MonoBehaviour
     public void SpawnNextPickUp()
     {
         Vector3 pos = center + new Vector3(Random.Range(-size.x / 2, size.x / 2), 
-                                            Random.Range(-size.y / 2, size.y / 2), 
-                                            0);
+                                            Random.Range(-size.y / 2, size.y / 2),
+                                            Random.Range(-size.z / 2, size.z / 2));
 
         Instantiate(pickUp, pos, Quaternion.identity);
 

@@ -17,9 +17,10 @@ import json
 if __name__ == "__main__":
 
     N_img = 30
-    id_cam1 = 4
-    id_cam2 = 6
-    terrain = True
+    id_cam1 = 6
+    id_cam2 = 4
+    terrain = False
+    send_message = True
     # Serveur
     UDP_IP = "127.0.0.1"
     UDP_PORT = 5065
@@ -36,9 +37,8 @@ if __name__ == "__main__":
     args.add_argument("-v_1", "--video_1", type=str, help="path to input video file", default="your_video_1.avi")
     args.add_argument("-v_2", "--video_2", type=str, help="path to input video file", default="your_video_2.avi")
     args = vars(args.parse_args())
-    Mint, dist, Mext1, Mext2, frame_1, frame_2 = getMINT_MEXT1_MEXT2(N_img, args=args)
+    Mint, dist, Mext1, Mext2, frame_1, frame_2 = getMINT_MEXT1_MEXT2(id_cam1, id_cam2, N_img, args=args)
     print("Calibration done !")
-    # take_pictures(id_cam1, id_cam2)
     cv2.destroyAllWindows()
 
     frame_1 = cv2.cvtColor(frame_1, cv2.COLOR_BGR2GRAY)
@@ -56,44 +56,31 @@ if __name__ == "__main__":
     cap1 = cv2.VideoCapture(id_cam1)
     cap2 = cv2.VideoCapture(id_cam2)
     print("Starting tracking...")
+    COINS = []
+    COINS2 = []
+    COINS3D = []
+    PTS_to_SAVE = []
     while(True):
         _, frame1 = cap1.read()
         _, frame2 = cap2.read()
         if cv2.waitKey(1) & 0xFF == ord('q'):
+            np.save("PTS_to_SAVE_LUC.npy", PTS_to_SAVE)
             break
         
         ### add undistort potentiellement
 
-        # frame1 = imutils.resize(frame1, width=400)
-        # frame2 = imutils.resize(frame2, width=400)
         ball_detected_1, center_1, radius_1 = get_ball_position(frame1, yellowLower, yellowUpper)
         ball_detected_2, center_2, radius_2 = get_ball_position(frame2, yellowLower, yellowUpper)
         
-        # print("ball_detected_1 : ", ball_detected_1)
-        # print("ball_detected_2 : ", ball_detected_2)
         cpp_is_ball_detected = 0
         X = np.array([0,0,0])
         if ball_detected_1 and ball_detected_2:
             cpp_is_ball_detected = 1
 
-            # print("center1 : ", center_1)
-            # print("center2 : ", center_2)
-            # cv2.circle(frame1, center_1, int(radius_1), (0, 255, 0), 2)
-            # cv2.circle(frame2, center_2, int(radius_2), (0, 255, 0), 2)
-            
-
-
             t_vec_L, t_vec_R = Mext1[:,3], Mext2[:,3]
 
-            # x = np.array([corners_cam1[1][0], corners_cam1[1][1], 1])
             x = np.array([center_1[0], center_1[1], 1])
-            # x = np.array([corners_cam1[]])
             x_prime = np.array([center_2[0], center_2[1], 1])
-
-            # x_prime = np.array([corners_cam2[1][0], corners_cam2[1][1], 1])
-            # centerL, centerR = get_optimal_points(F, center_1, center_2)
-            # center1 = np.asarray(center_1)
-            # center2 = np.asarray(center_2)
 
             # camera_center
             C1 = np.array([0,0,0])
@@ -148,58 +135,66 @@ if __name__ == "__main__":
             # ax.set_ylabel('Y Label')
             # ax.set_zlabel('Z Label')
             # plt.show()
+            PTS_to_SAVE.append(X)
+
+            ### test afin de savoir si la balle est dans le terrain
             if terrain:
-                ret, corners = cv2.findChessboardCorners(frame1, (11,8),None)
-                ret2, corners2 = cv2.findChessboardCorners(frame2, (11,8),None)
-                # cv2.drawChessboardCorners(frame1, (11,8), corners, ret)
-                # cv2.drawChessboardCorners(frame2, (11,8), corners2, ret2)
-    
-                if ret and ret2:
-                    COINS = [corners[0], corners[10], corners[77], corners[87]]
-                    COINS2 = [corners2[0], corners2[10], corners2[77], corners2[87]]
-                    cv2.drawChessboardCorners(frame1, (2,2), np.array(COINS), ret)
-                    cv2.drawChessboardCorners(frame2, (2,2), np.array(COINS2), ret2)
-    
-                    ### get 3D coordinates of the corners
-                    COINS3D = []
-                    for i in range(len(COINS)):
-                        x = np.array([COINS[i][0][0], COINS[i][0][1], 1])
-                        x_prime = np.array([COINS2[i][0][0], COINS2[i][0][1], 1])
-                        x_cam = np.linalg.inv(Mint) @ x
-                        x_prime_cam = np.linalg.inv(Mint) @ x_prime
-                        x_prime_cam = np.squeeze(x_prime_cam)
-    
-                        x_prime_cam = R.transpose() @ (x_prime_cam.reshape(3,1) - T)
-                        x_prime_cam = x_prime_cam.reshape(3,)
-                        l1 = x_cam 
-                        l2 = x_prime_cam - C2 
-                        l1 = l1 / np.linalg.norm(l1)
-                        l2 = l2 / np.linalg.norm(l2)
-                        n = np.cross(l1, l2)
-                        n1 = np.cross(l1, n)
-                        n2 = np.cross(l2, n)
-                        c1 = C1 + (np.dot(C2- C1, n2))/np.dot(l1, n2) * l1
-                        c2 = C2 + (np.dot(C1- C2, n1))/np.dot(l2, n1) * l2
-                        Xi = (c1 + c2) / 2
-                        COINS3D.append(Xi)
-    
-                ### if X se trouve dans la box de corners COINS3D alors on print ("IN")
-                ### else on print ("OUT")
+                if len(COINS) == 0:
+                    ret, corners = cv2.findChessboardCorners(frame1, (11,8),None)
+                    ret2, corners2 = cv2.findChessboardCorners(frame2, (11,8),None)
+                    # cv2.drawChessboardCorners(frame1, (11,8), corners, ret)
+                    # cv2.drawChessboardCorners(frame2, (11,8), corners2, ret2)
+                
+                    if ret and ret2:
+                        COINS = [corners[0], corners[10], corners[77], corners[87]]
+                        COINS2 = [corners2[0], corners2[10], corners2[77], corners2[87]]
+                        cv2.drawChessboardCorners(frame1, (2,2), np.array(COINS), ret)
+                        cv2.drawChessboardCorners(frame2, (2,2), np.array(COINS2), ret2)
+
+                        ### get 3D coordinates of the corners
+                        for i in range(len(COINS)):
+                            x = np.array([COINS[i][0][0], COINS[i][0][1], 1])
+                            x_prime = np.array([COINS2[i][0][0], COINS2[i][0][1], 1])
+                            x_cam = np.linalg.inv(Mint) @ x
+                            x_prime_cam = np.linalg.inv(Mint) @ x_prime
+                            x_prime_cam = np.squeeze(x_prime_cam)
+
+                            x_prime_cam = R.transpose() @ (x_prime_cam.reshape(3,1) - T)
+                            x_prime_cam = x_prime_cam.reshape(3,)
+                            l1 = x_cam 
+                            l2 = x_prime_cam - C2 
+                            l1 = l1 / np.linalg.norm(l1)
+                            l2 = l2 / np.linalg.norm(l2)
+                            n = np.cross(l1, l2)
+                            n1 = np.cross(l1, n)
+                            n2 = np.cross(l2, n)
+                            c1 = C1 + (np.dot(C2- C1, n2))/np.dot(l1, n2) * l1
+                            c2 = C2 + (np.dot(C1- C2, n1))/np.dot(l2, n1) * l2
+                            Xi = (c1 + c2) / 2
+                            COINS3D.append(Xi)
+                else:
+                    ### if X se trouve dans la box de corners COINS3D alors on print ("IN")
+                    ### else on print ("OUT")
+                        ### on test les coordonnées en x et en z 
                     if X[0] < COINS3D[0][0] and X[0] > COINS3D[1][0] and X[0] < COINS3D[2][0] and X[0] > COINS3D[3][0] and X[2] > COINS3D[0][2] and X[2] > COINS3D[2][2]:
                         print("IN")
                     else:
                         print("OUT")
-        # cv2.imshow('frame1', frame1)
-        # cv2.imshow('frame2', frame2)
-        av_speed = 0    
 
-        message = json.dumps({"is_detected": cpp_is_ball_detected, 
-                              "x": float(X[0]),
-                              "y": float(X[1]),
-                              "z": float(X[2]),
-                              "speed": round(av_speed,2),
-                              })
-        sock.sendto(message.encode(), (UDP_IP, UDP_PORT))
+                    # print("COINS3D : ", COINS3D)
+                    
+        cv2.imshow('frame1', frame1)
+        cv2.imshow('frame2', frame2)
+        print("X : ", X)
+        av_speed = 0    
+        if send_message:
+            message = json.dumps({"is_detected": cpp_is_ball_detected, 
+                                  "x": float(X[0]),
+                                  "y": float(X[1]),
+                                  "z": float(X[2]),
+                                  "speed": round(av_speed,2),
+                                  })
+            sock.sendto(message.encode(), (UDP_IP, UDP_PORT))
 
     cap1.release()
     cap2.release()

@@ -53,7 +53,7 @@ public class moveBall : MonoBehaviour
         InitUDP();
         showAttributes = FindObjectOfType<ShowAttributes>();
         count = 0;
-        lives = 1;
+        lives = 3;
 
         highScore = PlayerPrefs.GetInt("HighScore", 0);
     }
@@ -82,7 +82,7 @@ public class moveBall : MonoBehaviour
     public void Reset()
     {
         count = 0;
-        lives = 1;
+        lives = 3;
         scrollSpeed = 0.5f;
         actualSpeed = 0.0f;
 

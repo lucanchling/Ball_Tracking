@@ -21,9 +21,7 @@ def rotation_vec_to_matrix(r,t):
     return M
 
 
-def getMINT_MEXT1_MEXT2(N_img, args):
-    id_cam_1 = 4
-    id_cam_2 = 6
+def getMINT_MEXT1_MEXT2(id_cam_1, id_cam_2, N_img, args):
     Nx = 11
     Ny = 8
 
@@ -38,7 +36,7 @@ def getMINT_MEXT1_MEXT2(N_img, args):
         ret1, frame1 = cap1.read()
         ret, corners = cv2.findChessboardCorners(frame1, (Nx,Ny),None)
         cv2.drawChessboardCorners(frame1, (Nx,Ny), corners, ret)
-        cv2.imshow('frame1',frame1)
+        cv2.imshow('frame1',cv2.flip(frame1,1))
         key = cv2.waitKey(1) & 0xFF
         Timer = 2 * time.time() - Timer_tic - time.time()
         if ret and Timer > 0.5:
@@ -163,4 +161,6 @@ if __name__ == "__main__":
     args.add_argument('--show',action='store_true')
     args.add_argument('--save',action='store_true')
     args = vars(args.parse_args())
-    Mint, dist, Mext1, Mext2, frame_1, frame_2 = getMINT_MEXT1_MEXT2(N_img=20, args=args)
+    id_cam_1 = 6
+    id_cam_2 = 4
+    Mint, dist, Mext1, Mext2, frame_1, frame_2 = getMINT_MEXT1_MEXT2(id_cam_1, id_cam_2, N_img=20, args=args)
